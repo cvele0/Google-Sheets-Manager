@@ -1,0 +1,457 @@
+#Ruby je kompletno objektno orijentisan jezik, sve je objekat
+
+1.class #Pozivamo metod, class(), primetite da nema potrebe za zagradama
+		#Zagrade pri pozivu metoda u rubiju su opcione, i često se izbacuju
+		#Ovakvom primenom postižemo iluziju da je ovo poziv neke promenjive
+		#Iz klasa ne postoji direktan pristup promenjivama, već je sve preko metoda
+		#Dakle getter() za neku promenjivu, se zapravo zove isto kao promenjiva
+0.0.class #Float: Floating point brojevi imaju klasu Float
+true.class #TrueClass: true je singleton instance TrueClass
+false.class # FalseClass
+nil.class # NilClass
+
+#Primetite nedostatak ;
+# ; je takođe opcion
+
+#Primena metoda na integer je nešto što se često koristi u rubz jeziku
+
+3.times { print "Ruby!" } #Vratiće "Ruby! Ruby! Ruby!"
+1.upto(9) { |x| print x} #odštampaće "123456789"
+
+#times() i upto() su implementirani unutar integer objekata, ove metode su iteratori
+#Kod unutar zagrada se zove blok
+#Iako jezik sadrži While petlju, praksa je da se iteratori češće koriste
+#Array takođe ima svoj defaultni iterator, to je funkcija each
+
+
+
+a= [3,2,1] #literal niza
+a.each do |element|
+  puts element
+end 
+a[3] = a[2] -1 #bracket notacija za pristup elementu, i za podešavanje elementa
+c= a.select { |x| x.even?} #Vraća nam sve parne elemente c= [2,4]
+a.inject do |sum, x| #Sumira sve elemente
+  sum+x              #Umesto {} moguće je koristiti do i end, u rubiju je praksa da se do i end koriste pri mutliline blokovima
+end                  #U ruby programskom jeziku, return se sporazumeva, poslednja linija koda se uvek vraća
+                     #(((3 + 2) + 1)) => 6
+
+a = [4,6,7,5]   
+a.length     # => 4
+a.rotate     # => [6, 7, 5, 4]
+a.reverse
+a.sort      # => [4, 5, 6, 7]
+a.sort.reverse  # => [7, 6, 5, 4]
+a[0]       # => 4
+a[3]       # => 5
+a << 1 			# Korisno ukoliko ne znamo veličinu niza
+
+a[10] = 0    # => 0 ; [4, 6, 7, 5, 3, 1, nil, nil, nil, nil, 0]
+a.length     # => 11
+					 
+					 
+# Hash je osnovna struktura podataka u Ruby programskom jeziku, Standardni key : value storage
+# Umesto indeksa koristi se key polje
+# Hash takođe ima implementirane iteratore, međutim ovaj iterator šalje i ključ i vrednost u blok
+h = { :one => 1, :two => 2 } #Koristimo => kao način mapiranja key value para
+h = { one: 1, two: 2}
+h[:one] # vraća 1, dakle pristup preko ključa
+h[:three] = 3 # element u hash možemo lako dodati ovako
+h.each do |key,value|
+  print "#{value}:#{key}" #Varijable možemo injectovati unutar stringa preko #{name} , za sve unutar zagrade se poziva to_S() metoda
+end
+
+		
+#Hash može koristiti bilo koji objekat kao svoj ključ, međutim praksa je da se koriste "simboli"
+#Symbol je immutable string, takav da može postojati samo jedna instanca, njihov identitet se obično određuje samo po imenu
+#Rezultat je da dva symbola nikada nisu ista, osim ako imaju isto ime
+
+#Blokovi ne moraju da se koriste uvek u loop konstrukcijama, mogu se koristiti samo i pri jednoj upotrebi
+
+File.open("fajl.txt") do |f|
+	line = f.readline                #Samo će se jedanput pozvati, nakon izvršenja, će se fajl sam zatvoriti
+end
+
+t = Thread.new do
+	File.read("data.txt")
+end                                   #Kreira novi thread i čita fajl. Sadržina fajla će biti dostupna unutar t
+
+
+#Stringovi
+
+# Sve su ovo stringovi
+' this '
+" this "
+%/ this /
+%q{ this }
+%Q^ this ^
+
+One = 1
+puts "#{One} is a number"   # outputs, 1 is a number
+puts "%d is a number" % One  # outputs, 1 is a number
+
+# Concatenate the string values.
+value3 = value1 + "/" + value2
+
+#Vraćamo 1, ukoliko string sadrži "to"
+puts "1" if value.include? "to"
+
+#Moguće je splitovanje stringova po delimiteru, itd...
+input = "one two three"
+values = input.split(" ")
+
+#Ruby String biblioteka je jedna od najmoćnijih, dodatni primeri biće naknadno odrađeni.
+
+
+# Ruby je generalno veoma "Expressivan jezik" ne mora sve da bude striktno formalno, već biva interpretirano
+# Svi ovi expressioni obično vraćaju neku vrednost u obliku varijable
+minimum = if x < y then x else y end
+
+# Operatori
+
+#Ruby implementira standardne operatore
+#Operatori se lako mogu overajdovati i customizovati, npr kao što se drugačije ponašaju kod stringova i intova
+
+#Naprimer << kada se primenjuje na brojevima vrši bitovni shift, dok kod stringova dodaje na kraj, i kreira novi string
+# << takodje može da se koristi za spajanje dva niza, itd...
+# Generalno, u praksi se implementira << kada treba nešto dodati u klasu, i kreirati novu instancu
+
+1 + 2 	# => 3: Sabiranje
+
+1 * 2 # => 2: Množenje
+
+1 + 2 == 3 # => true: == equals
+
+2 ** 1024 # 2 na 1024, ruby ima različitu implementaciju INT-a, može biti "neograničene" veličine
+
+"Ruby" + " rocks!" # => "Ruby rocks!": spajanje stringova, konkatenacija
+
+"Ruby! " * 3 # => "Ruby! Ruby! Ruby! ": množenje stringova
+
+"%d %s" % [3, "rubies"] # => "3 Rubies": Printovanje kao u C/Python stilu, printf
+
+max = x > y ? x : y # Kondicionalni operater
+
+
+
+# Moguće je overrajdovati [] operator, u kojoj god klasi
+# Može se čak prosleđivati i više argumenata, delimitirano sa ,
+# Moguće je čak ovarrajdovati i []= tako da možemo da dodeljujemo element preko ovoga
+
+
+#Metode
+
+#Metode se definišu sa def keywordom, Vrednost koja se returnuje je poslednji expression unutar tela metode
+#Ukoliko se metoda definiše van klase, onda je "globalna" metoda i svuda dostupna 
+
+def square(x) # Definiše metod sa imenom square, koji prima parametar x
+	x*x       # vraća x na kvadrat
+end           # kraj metode
+
+ 
+#Metode je takođe moguće "pridružiti" nekoj klasi, kao singleton metodu u drugim jezicima
+
+def Math.square(x) 
+	x*x
+end
+
+# Math modul je deo osnovne ruby biblioteke, i ovaj kod dodaje novu metodu u njega
+# Svaki od modula je otvoren za modifikaciju, u realnom vremenu, kodom iznad možemo funkcionalnost dodati u ovaj modul kao god želimo
+
+
+#Dodele
+
+#Standardna dodela
+
+x = 1
+
+#Inkrementacija
+# Ruby jezik nema ++ i -- 
+
+x += 1
+x -= 1
+
+#Paralelna dodela
+x, y = 1, 2 # isto kao x = 1; y = 2
+a, b = b, a # Swap u jednoj liniji koda
+x,y,z = [1,2,3] # Dodela elemenata niza varijablama
+
+#Treba primetiti da je moguće overrajdovati = operator, iz ovog razloga dve izraza ispod su ista
+o.x=(1) # Normalna metoda
+o.x = 1 # Preko dodele
+#Ovo se zapravo koristi za settere unutar klasa
+
+
+#Sufiksi i prefiksi
+
+#Ruby dozvoljava da se razni znakovi pišu unutar imena metoda
+#Metode se takođe mogu završiti i sa ? i !
+#? možemo koristiti u metodama koje vraćaju boolean
+
+25.even? #Ukoliko je broj integer, ima metodu even, koja vraća true ako je paran
+a = []
+a.empty? #proverava da li je a prazan
+
+# ! se obično koristi kada je upotreba ove metode "opasna"
+# Naprimer chomp() vraća novi string bez new line, dok chomp!() vrši operaciju nad samim stringom, dakle "destruktivan je"
+# Slična je upotreba kod sort() i sort!()
+
+# Postoje i prefiksi, koji se koristi da se deklariše scope varijable
+# Globalne varijable počinju sa $, Varijable jedne instance sa @, a klasne varijable sa @@
+# Ovo generalno olakšava programiranje, jer odma znamo odakle je ta varijabla
+# Takođe se mora ovako raditi, jer bez ovakvog pristupa, ne bi mogli da ignorišemo ()
+
+
+#Regex
+#Regexi su sastavni deo ruby jezika, i jedan su od struktura podataka
+#Range je uprosceni regex, koji se obično koristi kod brojeva, da označi sve brojeve izmedju dva broja
+
+/[Rr]uby/ # Matches "Ruby" or "ruby"
+/\d{5}/   # Matches 5 consecutive digits
+1..3      # All x where 1 <= x <= 3
+
+Ruby === /[Rr]uby/
+#Regexi i rangovi imaju implementiran === operator za proveru da li važi neki regex ili range nad nečim
+#Po defaultu se koristi kod switch/case
+
+# Determine US generation name based on birth year
+# Case expression tests ranges with ===
+generation = 1991
+generation = case birthyear
+when 1946..1963: "Baby Boomer"
+when 1964..1976: "Generation X"
+when 1978..2000: "Generation Y"
+else nil
+end 
+
+
+
+(0..2).first   # => 0
+(0..2).last    # => 2 
+(0..3).each { |x| print x }       # outputs, 0123
+(0...10).reverse_each { |x| print x }  # outputs, 9876543210
+
+# Ukoliko koristimo enuemerator ne moramo da koristimo each
+5.upto(10).class             # => Enumerator
+5.upto(10) { |x| print x }        # outputs, 5678910 
+(5..10).each { |x| print x }       # outputs, 5678910
+
+# A method to ask the user to confirm something
+def are_you_sure? 					  # Definicija metode. Primetite znak pitanja
+	while true 						  # Radimo loop, dok ne dobijemo return
+		print "Are you sure? [y/n]: " # Printujemo
+		response = gets 			  # Dobijamo string sa konzole
+	case response 					  # Počinjemo case
+		when /^[yY]/ 				  # Ukoliko počinje sa Y ili y
+			return true 			  # vrati true
+		when /^[nN]/, /^$/            # Ukoliko počinje sa n, N ili je prazan
+			return false              # vrati false
+	end
+end
+
+
+#Klase
+
+#Klase su kolekcije metoda, koje vrše operacije nad stanjem nekog objekta. 
+#Stanje objekta imamo preko instance varijabli(@)
+
+# Ova klasa predstavlja sekvencu brojeva, karakterisanih sa tri parametra, from, to, by
+# Sekvenca je takva da važi pravilo
+# from <= x <= to
+# x = from + n*by, gde je n integer
+class Sequence
+
+	# Ova klasa je enumerable, dakle definiše iterator ispod
+	include Enumerable # Inkludujemo metode ovog modula
+
+	# initialize metod je zapravo konstruktor. Biće pozvan pri svakom kreiranju klase
+	def initialize(from, to, by)
+		@from, @to, @by = from, to, by # Paralelna dodela. Primetite @ prefix
+									   # Takođe primetite da ne moramo da ih definišemo van metoda!!!
+	end
+
+	# Ovo je iterator koji Enumerable zahteva da implementiramo
+	def each
+		x = @from # Podešavamo početak
+		while x <= @to # Dok nismo stigli do kraja sekvence
+			yield x # Prosledi x, onome ko je pozvao .each()
+			x += @by # povećaj brojač za by
+		end
+	end
+
+	# Definišemo length metodu da vrati dužinu sekvence
+	def length
+		return 0 if @from > @to # if koji se koristi unutar returna
+		Integer((@to-@from)/@by) + 1 # računamo dužinu sekvence
+	end
+
+	# Želimo da se dve metode ponašaju na isti način, to jest da imaju isti kod
+	# Često se dešava da više metoda imaju jednu impelentaciju u rubiju
+	alias size length # size je sada sinonim za length
+
+
+	# Override the array-access operator to give random access to the sequence
+	def[](index)
+		return nil if index < 0 # vraćamo 0 za negativne indekse
+		v = @from + index*@by # računamo vrednost
+		if v <= @to # Ukoliko ima toliko članova
+			v 
+		else # Ukoliko nema
+			nil 
+		end
+	end
+
+	# Overrajd aritmetičkih operatora da vraćaju nove sekvence
+	def *(factor)
+		Sequence.new(@from*factor, @to*factor, @by*factor)
+	end
+
+	def +(offset)
+		Sequence.new(@from+offset, @to+offset, @by)
+	end
+	
+end
+
+
+#Evo nekog koda koji koristi ovu klasu
+s = Sequence.new(1, 10, 2) # Od 1 do 10, po 2
+s.each {|x| print x } # Iteriramo, i printujemo sve elemente => "13579"
+print s[s.size-1] # Stampamo 9
+t = (s+1)*2 # od 2, do 22, po 4
+
+
+# Osnovna stvar koju smo hteli u ovoj klasi je da iteriramo kroz neki Range, koji već postoji u rubiju, po nekom stepu
+# Ono što možemo da uradimo umesto da dodajemo novu klasu je da ubacimo ovu funkcionalnost u range, u realnom vremenu
+
+class Range # 
+
+	def by(step) # Dodajemo iterator sa by parametrom
+		x = self.begin #Počinjemo na početku .begin je već definisana unutar Range
+		if exclude_end? # Obrađujemo range koji ima ... umesto .. , i ne uključuje poslednji element
+			while x < self.end 
+				yield x
+				x += step
+			end
+		else 
+			while x <= self.end 
+				yield x
+				x += step
+			end
+		end
+	end # Kraj metode
+	
+end # Kraj klase
+
+#Primeri
+(0..10).by(2) {|x| print x} # Vraća "0246810"
+(0...10).by(2) {|x| print x} # Vraća "02468"
+
+
+#Ali generalno smo se džabe mučili, pošto Range već implementira step()
+#Ruby biblioteke su izrazito dobro napisane, i začudilo bi vas za šta sve postoji default implementacija
+
+
+#Neke od stvari koje treba znati, koje su drugačije od ostalih jezika
+
+#Stringovi su mutable
+#Moguće je menjati string na licu mesta, sa []= , gde možemo dodavati ili insertovati druge stringove
+#Moguće je dodavati string na string preko << 
+#Iz ovog razloga string objekti nisu unique, i svaki put kada iskoristimo "String", napraviće se novi objekat
+#Doduše moguće ga je freezovati, da se zaustavi ovo ponašanje...itd...
+
+#Loop unutar Rubija generalno očekuje true ili false
+#Dodatna funkcionalnost je da null tretira kao false, a sve ostalo kao true
+
+#BITNO
+# 0 nije false!!!
+# "" nije false!!!
+
+#Ruby ima ugradjeni package management system, zove se RubyGems
+#"Biblioteke" skinute na ovaj način se zovu gemovi
+#Preko Ruby gems možemo veoma lako skidati biblioteke, i pratiti dependancy za sve naše projekte
+#RubyGems se automatski instalira sa default ruby instalacijom, pristupa se preko komandne linije
+
+#Instalaciju neke biblioteke pozivamo sa
+gem install rails
+
+#Dakle komanda install traži gem koji se zove "rails", njegovu najnoviju verziju (jer dugačije nismo deklarisali), i instalira ga na mašini
+#Neke od komandi koje ima gem su
+gem list # lista instalirane gemove
+gem enviroment # Prikazuje informacije o konfiguraciji
+gem update rails # Updejtuje gem po imenu rails
+gem update # Updejtuje sve gemove
+gem update --system # Updejtuje RubyGems 
+gem uninstall rails # Uklanja rails gem
+
+#Nakon instalacije možemo samo u našem kodu ubaciti modul preko include 'rails'
+
+#Ukoliko želimo da koristimo neku drugu verziju biblioteke, a imamo ih više
+gem 'RedCloth', '> 2.0', '< 4.0' # Activate RedCloth version 2.x or 3.x
+require 'RedCloth' # And now load it
+
+
+#Jos jedan primer
+
+class MegaGreeter
+  attr_accessor :names
+
+  # Create the object
+  def initialize(names = "World")
+    @names = names
+  end
+
+  # Say hi to everybody
+  def say_hi
+    if @names.nil?
+      puts "..."
+    elsif @names.respond_to?("each")
+      # @names is a list of some kind, iterate!
+      @names.each do |name|
+        puts "Hello #{name}!"
+      end
+    else
+      puts "Hello #{@names}!"
+    end
+  end
+
+  # Say bye to everybody
+  def say_bye
+    if @names.nil?
+      puts "..."
+    elsif @names.respond_to?("join")
+      # Join the list elements with commas
+      puts "Goodbye #{@names.join(", ")}.  Come back soon!"
+    else
+      puts "Goodbye #{@names}.  Come back soon!"
+    end
+  end
+end
+
+
+if __FILE__ == $0
+  mg = MegaGreeter.new
+  mg.say_hi
+  mg.say_bye
+
+  # Change name to be "Zeke"
+  mg.names = "Zeke"
+  mg.say_hi
+  mg.say_bye
+
+  # Change the name to an array of names
+  mg.names = ["Albert", "Brenda", "Charles",
+              "Dave", "Engelbert"]
+  mg.say_hi
+  mg.say_bye
+
+  # Change to nil
+  mg.names = nil
+  mg.say_hi
+  mg.say_bye
+end
+
+
+
+
+
+

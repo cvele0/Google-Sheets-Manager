@@ -1,0 +1,388 @@
+require "google_drive"
+
+session = GoogleDrive::Session.from_config("config.json")
+wsheet1 = session.spreadsheet_by_key("1bR5FgtBozfl9y1-XzaeJVuM3Sloe5rhcE1FcLICWBYs").worksheets[0]
+wsheet2 = session.spreadsheet_by_key("1bR5FgtBozfl9y1-XzaeJVuM3Sloe5rhcE1FcLICWBYs").worksheets[1]
+wsheet3 = session.spreadsheet_by_key("1bR5FgtBozfl9y1-XzaeJVuM3Sloe5rhcE1FcLICWBYs").worksheets[2]
+
+#String is_integer override
+class String
+    def is_integer?
+      self.to_i.to_s == self
+    end
+end
+
+#Class used to describe columns in Table class
+class MyColumn
+    include Enumerable
+    attr_accessor :arr
+
+    # Initialize array with 1 dummy element for 1 indexing
+    # Params:
+    # - wsheet: worksheet
+    # - idx: index of a row/column
+    # - up: beginning of a row in worksheet
+    # - left: beginning of a column in worksheet
+    def initialize(wsheet, idx, up, left)
+        @arr = [0]
+        @ws = wsheet
+        @nth = idx
+        @up = up
+        @left = left
+    end
+
+    # Appending
+    def add(x)
+        @arr << x
+    end
+
+    #Sum of all integer elements
+    def sum
+        @arr.inject { |sum, num| sum + num.to_i }
+    end
+
+    #Average of all integer elements
+    def avg
+        cnt = @arr.count { |e| e.to_s.is_integer? }
+        return 0.0 if cnt == 1
+        sum().to_f / (cnt - 1)
+    end
+
+    #To string override
+    def to_s
+        string = ""
+        @arr.each { |i| string.concat(i.to_s + " ") }
+        string
+    end
+
+    #Index of element in array by name (not case sensitive)
+    def index(colName) 
+        @arr.index do |i| 
+            if i.is_a? String
+                i.downcase == colName.downcase
+            else
+                i == colName
+            end
+        end
+    end
+
+    def [] (idx)
+        @arr[idx]
+    end
+
+    def []= (idx, val)
+        return unless idx >= 1 && idx <= @arr.size - 1
+        @ws[@up + idx, @left + @nth - 1] = val
+        @arr[idx] = val
+        @ws.save
+    end
+
+    def method_missing(key, *args)
+        index(key.to_s)
+    end
+
+    def each
+        (1..@arr.size - 1).each { |i| yield @arr[i] }
+    end
+
+    #Map method override - working only with numbers
+    def map(&block)
+        ans = []
+        (1..@arr.size - 1).each { |i| ans << block.call(@arr[i].to_i) }
+        ans
+    end
+
+    def == (col2)
+        return false if @arr.size != col2.arr.size
+        (1..@arr.size - 1).each { |i| return false if @arr[i] != col2.arr[i] }
+        true
+    end
+
+    def select(&block)
+        ans = []
+        (1..@arr.size - 1).each { |i| ans << @arr[i] if block.call(@arr[i]) == true }
+        ans
+    end
+
+    #Reduce method override - working only with numbers
+    def reduce(sum = 0, &block)
+        (1..@arr.size - 1).each do |i|
+            if @arr[i].is_integer?
+                sum = block.call(sum, @arr[i])
+            end
+        end
+        sum
+    end
+end
+
+#A class for reading from / writing to google sheets cells
+class Table
+    attr_reader :ws, :up, :left, :down, :right, :ignoreRow
+    include Enumerable
+
+    #initialization - determine bounds and total row
+    def initialize(wsheet)
+        @ws = wsheet
+        @up, @left, @down, @right, @ignoreRow = 100, 100, 0, 0, -1
+        (1..100).each do |i|
+            (1..100).each do |j|
+                if @ws[i, j].size != 0
+                    @up = [@up, i].min
+                    @left = [@left, j].min
+                    @right = [@right, j].max
+                    @down = [@down, i].max
+                end
+                if @ws[i, j].downcase == "total" || @ws[i, j].downcase == "subtotal"
+                    @ignoreRow = i
+                end
+            end
+        end
+        @num_rows = @down - @up + 1
+        @num_cols = @right - @left + 1
+    end
+
+    # Returns 1-indexed 2d array with same cell values as given worksheet and ignores total row
+    def return2DArray
+        mat = Array.new(@down - @up + 2) { Array.new(@right - @left + 2) }
+        x = y = 1
+        (@up..@down).each do |i|
+            y = 1
+            next if i == @ignoreRow
+            (@left..@right).each do |j|
+                mat[x][y] = @ws[i, j]
+                y += 1
+            end
+            x += 1
+        end
+        mat
+    end
+
+    # Returns idx-th row of worksheet in a form of 1-indexed array
+    def row(idx)
+        return unless idx >= 1 && idx <= @num_rows
+        line = MyColumn.new(@ws, idx, @up, @left)
+        (@left..@right).each { |col| line.add(@ws[@up + idx - 1, col]) }
+        line
+    end
+
+    def each
+        (@up..@down).each do |i|
+            (@left..@right).each do |j|
+                yield @ws[i, j]
+            end
+        end
+    end
+
+    #to string override, printing every element
+    def to_s
+        string = ""
+        (@up..@down).each do |i|
+            (@left..@right).each do |j|
+                string.concat(@ws[i, j] + " ")
+            end
+            string.concat("\n")
+        end
+        string
+    end
+
+    def [](colName)
+        col = row(1).index(colName)
+        return if col.nil?
+        line = MyColumn.new(@ws, col, @up, @left)
+        (@up + 1..@down).each do |row| 
+            next if row == @ignoreRow
+            line.add(@ws[row, @left + col - 1]) 
+        end
+        line
+    end
+
+    def method_missing(key, *args)
+        text = key.to_s.downcase
+        col = -1
+        row(1).arr.each_with_index do |val, i|
+            next unless val.is_a? String 
+            if val.downcase == text
+                col = i 
+            end
+        end
+        return nil if col == -1
+
+        line = MyColumn.new(@ws, col, @up, @left)
+        (@up + 1..@down).each do |i| 
+            next if i == @ignoreRow
+            line.add(@ws[i, @left + col - 1]) 
+        end
+        line
+    end
+
+    # Return a table with rows of both tables
+    def +(t2)
+        return unless row(1) == t2.row(1)
+        
+        mat = []
+        emp = [0]
+        (1..@num_cols).each { |i| emp << 0 }
+        mat << emp
+
+        (@up + 1..@down).each do |i|
+            col = [0]
+            next if i == @ignoreRow
+            (@left..@right).each do |j|
+                col << @ws[i, j]
+            end
+            mat << col
+        end
+        (t2.up + 1..t2.down).each do |i|
+            col = [0]
+            next if i == t2.ignoreRow
+            (t2.left..t2.right).each do |j|
+                col << t2.ws[i, j]
+            end
+            mat << col
+        end
+        mat
+    end
+
+    #Returns all rows of first table that dont appear in table2
+    def -(t2)
+        return unless row(1) == t2.row(1)
+        
+        mat = []
+        emp = [0]
+        (1..@num_cols).each { |i| emp << 0 }
+        mat << emp
+
+        (@up + 1..@down).each do |i|
+            col = [0]
+            next if i == @ignoreRow
+            next if repeatingRow(i, t2)
+            (@left..@right).each do |j|
+                col << @ws[i, j]
+            end
+            mat << col
+        end
+        mat
+    end
+
+    #Returns number of empty rows in a table
+    def emptyRows
+        ans = []
+        (@up..@down).each do |i|
+            empty = true
+            (@left..@right).each do |j|
+                empty = false if @ws[i, j].size != 0
+            end
+            ans << i - @up + 1 if empty
+        end
+        ans
+    end
+
+    private
+
+    #Return true if row is appearing in table2
+    def repeatingRow(row, t2)
+        seen = false
+        (t2.up..t2.down).each do |i|
+            rowSame = true
+            (1..@num_cols).each do |j|
+                rowSame = false if @ws[row, @left + j - 1] != t2.ws[i, t2.left + j - 1] 
+            end
+            seen = true if rowSame
+        end
+        seen
+    end
+end
+
+#Testing operations
+t = Table.new(wsheet1)
+print "tabela ispis: \n"
+print t
+print "\n\n"
+print "--- 2d: "
+print mat = t.return2DArray
+print "\n"
+print "--- row 1: "
+print t.row(1)
+print "\n"
+print "--- each: "
+t.each do |i|
+    print i.to_s + ","
+end
+print "\n"
+print "--- t[\"prva\"][3] = "
+print t["prva"][3]
+print "\n"
+print "---t[druga] = "
+print t["druga"]
+print "\n"
+print "---setting: [pRVa][3] = 666\n"
+t["pRVa"][3] = "666"
+print "---t[DrUGA][2] = "
+print t["DrUGA"][2]
+print "\n"
+print "t.TrECa: "
+print t.TrECa
+print "\n"
+print "t.TreCa[2] = "
+print t.TreCa[2]
+print "\n"
+print "t.Treca.sum = "
+print t.TrecA.sum
+print "\n"
+print "t.prvA.sum = "
+print t.prvA.sum
+print "\n"
+print "t.prva.avg = "
+print t.prvA.avg
+print "\n"
+print "t.DRUGA.avg = "
+print t.DRUGA.avg
+print "\n"
+print "t.TrecA.avg = "
+print t.TrecA.avg
+print "\n"
+print "t.indeks.rn1920 = "
+print t.indeks.rn1920
+print "\n"
+print "newCol = t.prva.map { |cell| cell += 2 }\n"
+newCol = t.prva.map { |cell| cell += 2 }
+print "newCol elements: "
+newCol.each do |i|
+    print i
+    print " "
+end
+print "\n"
+print "t.prva.each: "
+t.prva.each do |i|
+    print i
+    print " "
+end
+print "\n"
+print "t.prva.select (samo parni integeri) = "
+selected = t.prva.select { |i| i.is_integer? && i.to_i.even? }
+print selected
+print "\n"
+print "Suma prve kolone pocevsi od 5: "
+print t.prva.reduce(5) { |sum, num| sum + num.to_i }
+print "\n"
+print "Suma druge kolone pocevsi od 0: "
+print t.druga.reduce(0) { |sum, num| sum + num.to_i }
+print "\n"
+print "Proizvod trece kolone: "
+print t.treca.reduce(1) { |sum, num| sum * num.to_i } 
+print "\n"
+
+#Testing + and -
+t2 = Table.new(wsheet2)
+t3 = Table.new(wsheet3)
+print "t2 + t3 = "
+print t2 + t3
+print "\n\n"
+print "t2 - t3 = "
+print t2 - t3
+print "\n"
+
+#Testing empty rows
+print "vrati sve prazne redove u t2: "
+print t2.emptyRows
+print "\n"
